@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Steam 挂刀收益计算器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0c1117;
+    --bg-1:#171a21;
+    --bg-2:#1b2838;
+    --panel:rgba(27,40,56,.72);
+    --panel-line:rgba(102,192,244,.18);
+    --ink:#c7d5e0;
+    --ink-dim:#8aa1b4;
+    --ink-faint:#5b7185;
+    --cyan:#66c0f4;
+    --cyan-soft:#2a6f97;
+    --green:#a3d977;
+    --green-deep:#6aa84f;
+    --red:#ff7b72;
+    --gold:#f0c14b;
+    --shadow:0 24px 60px -20px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Chakra Petch","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 78% -8%, rgba(102,192,244,.16), transparent 60%),
+      radial-gradient(900px 700px at 8% 110%, rgba(106,168,79,.10), transparent 55%),
+      linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 45%, var(--bg-0) 100%);
+    background-attachment:fixed;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:48px 18px 64px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* faint grid texture */
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(102,192,244,.045) 1px,transparent 1px),
+      linear-gradient(90deg, rgba(102,192,244,.045) 1px,transparent 1px);
+    background-size:46px 46px;
+    mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 75%);
+    pointer-events:none;
+  }
+
+  .wrap{width:100%;max-width:560px;position:relative;z-index:1}
+
+  .head{text-align:center;margin-bottom:30px;animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--cyan);
+    border:1px solid var(--panel-line);
+    background:rgba(102,192,244,.06);
+    padding:6px 14px;border-radius:999px;margin-bottom:18px;
+  }
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+  h1{
+    font-weight:700;font-size:clamp(26px,6vw,38px);letter-spacing:.02em;
+    background:linear-gradient(92deg,#fff,var(--cyan) 60%,var(--cyan-soft));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    line-height:1.15;
+  }
+  .sub{color:var(--ink-dim);font-size:13.5px;margin-top:10px;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:20px;
+    padding:26px 24px;
+    backdrop-filter:blur(14px);
+    box-shadow:var(--shadow);
+    animation:rise .7s .08s cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  .field{margin-bottom:18px}
+  .field label{display:block;font-size:13px;color:var(--ink-dim);margin-bottom:8px;letter-spacing:.02em;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+  .input-shell{position:relative}
+  .input-shell .cur{
+    position:absolute;left:15px;top:50%;transform:translateY(-50%);
+    color:var(--ink-faint);font-family:"JetBrains Mono",monospace;font-size:16px;pointer-events:none}
+  input[type=number]{
+    width:100%;
+    font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:500;
+    color:#fff;background:rgba(12,17,23,.6);
+    border:1px solid rgba(102,192,244,.16);
+    border-radius:12px;
+    padding:14px 14px 14px 34px;
+    outline:none;transition:.18s;
+  }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+  input:focus{border-color:var(--cyan);background:rgba(12,17,23,.85);
+    box-shadow:0 0 0 4px rgba(102,192,244,.13)}
+  input::placeholder{color:var(--ink-faint)}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  .fee-label-row{display:flex;align-items:center;justify-content:space-between}
+  .platforms{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .chip{
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:12.5px;color:var(--ink-dim);
+    background:rgba(12,17,23,.5);
+    border:1px solid rgba(102,192,244,.14);
+    padding:7px 13px;border-radius:999px;cursor:pointer;transition:.16s;user-select:none}
+  .chip:hover{border-color:var(--cyan);color:var(--ink)}
+  .chip.active{background:rgba(102,192,244,.14);border-color:var(--cyan);color:#fff}
+  .chip small{color:var(--ink-faint);font-family:"JetBrains Mono",monospace;margin-left:5px}
+
+  .fee-input .input-shell .cur{left:auto;right:15px}
+  .fee-input input{padding:14px 36px 14px 14px}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--panel-line),transparent);margin:24px 0 22px}
+
+  .results{display:grid;gap:12px}
+  .res{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:15px 16px;border-radius:13px;
+    background:rgba(12,17,23,.42);
+    border:1px solid rgba(102,192,244,.10);
+    opacity:0;transform:translateY(8px);
+    animation:rise .5s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  .res:nth-child(1){animation-delay:.16s}
+  .res:nth-child(2){animation-delay:.22s}
+  .res:nth-child(3){animation-delay:.28s}
+  .res .k{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:13.5px;color:var(--ink-dim)}
+  .res .k small{display:block;font-size:11px;color:var(--ink-faint);margin-top:3px}
+  .res .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:21px;letter-spacing:.01em;text-align:right}
+  .res .v .unit{font-size:12px;color:var(--ink-faint);font-weight:500;margin-left:2px}
+
+  .res.ratio .v{color:var(--cyan)}
+  .res.received .v{color:#fff}
+  .res.profit{background:linear-gradient(100deg,rgba(106,168,79,.12),rgba(12,17,23,.3));border-color:rgba(106,168,79,.3)}
+  .res.profit.loss{background:linear-gradient(100deg,rgba(255,123,114,.12),rgba(12,17,23,.3));border-color:rgba(255,123,114,.3)}
+  .res.profit .v{color:var(--green);font-size:24px}
+  .res.profit.loss .v{color:var(--red)}
+  .res.profit .k{font-weight:600;color:var(--ink)}
+
+  .pill{font-family:"JetBrains Mono",monospace;font-size:11px;padding:3px 8px;border-radius:6px;margin-left:9px;
+    background:rgba(102,192,244,.12);color:var(--cyan);vertical-align:middle}
+  .pill.up{background:rgba(106,168,79,.16);color:var(--green)}
+  .pill.down{background:rgba(255,123,114,.16);color:var(--red)}
+
+  .empty{color:var(--ink-faint);font-size:14px;text-align:center;padding:6px 0;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+
+  .note{margin-top:18px;font-size:11.5px;line-height:1.7;color:var(--ink-faint);
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;text-align:center}
+
+  .foot{text-align:center;margin-top:26px;font-size:11px;color:var(--ink-faint);letter-spacing:.04em}
+
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+  @media (max-width:430px){
+    .res .v{font-size:19px}
+    .res.profit .v{font-size:21px}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <span class="badge"><span class="dot"></span>STEAM TRADING TOOL</span>
+      <h1>挂刀收益计算器</h1>
+      <p class="sub">输入进货价与出货价，实时测算挂刀比例、到账金额与净利润</p>
+    </header>
+
+    <main class="card">
+      <div class="row2">
+        <div class="field">
+          <label for="cost">进货价格（成本）</label>
+          <div class="input-shell">
+            <span class="cur">¥</span>
+            <input id="cost" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+        <div class="field">
+          <label for="sell">出货价格（挂单价）</label>
+          <div class="input-shell">
+            <span class="cur">¥</span>
+            <input id="sell" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+      </div>
+
+      <div class="field fee-input" style="margin-bottom:6px">
+        <div class="fee-label-row">
+          <label for="fee" style="margin-bottom:8px">平台手续费率</label>
+        </div>
+        <div class="platforms" id="platforms">
+          <span class="chip" data-fee="2.5">网易BUFF<small>2.5%</small></span>
+          <span class="chip" data-fee="2.5">悠悠有品<small>2.5%</small></span>
+          <span class="chip" data-fee="5">C5GAME<small>5%</small></span>
+          <span class="chip" data-fee="15">Steam市场<small>15%</small></span>
+          <span class="chip" data-fee="0">无手续费<small>0%</small></span>
+        </div>
+        <div class="input-shell">
+          <span class="cur">%</span>
+          <input id="fee" type="number" inputmode="decimal" min="0" step="0.1" placeholder="2.5" value="2.5">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="results" id="results">
+        <div class="res ratio">
+          <span class="k">挂刀比例<small>进货价 ÷ 出货价，越低越划算</small></span>
+          <span class="v" id="r-ratio">—</span>
+        </div>
+        <div class="res received">
+          <span class="k">实际到账金额<small>出货价扣除手续费后</small></span>
+          <span class="v" id="r-received">—</span>
+        </div>
+        <div class="res profit" id="profit-box">
+          <span class="k">实际利润<small>到账金额 − 进货成本</small></span>
+          <span class="v" id="r-profit">—</span>
+        </div>
+      </div>
+
+      <p class="note">※ 各平台费率随政策变动，预设值仅供参考，请以实际结算为准——费率框可随时手动修改。</p>
+    </main>
+
+    <p class="foot">纯静态页面 · 可部署至 GitHub Pages / Cloudflare Pages / Vercel</p>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const cost = $('cost'), sell = $('sell'), fee = $('fee');
+  const elRatio = $('r-ratio'), elRecv = $('r-received'), elProfit = $('r-profit');
+  const profitBox = $('profit-box');
+
+  const money = n => '¥' + n.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  function setActiveChip(){
+    const f = fee.value;
+    document.querySelectorAll('.chip').forEach(c=>{
+      c.classList.toggle('active', parseFloat(c.dataset.fee) === parseFloat(f));
+    });
+  }
+
+  function calc(){
+    const c = parseFloat(cost.value);
+    const s = parseFloat(sell.value);
+    const f = parseFloat(fee.value) || 0;
+
+    // 出货价是核心，未填则不计算
+    if(!(s > 0)){
+      elRatio.innerHTML = elRecv.innerHTML = elProfit.innerHTML = '—';
+      profitBox.classList.remove('loss');
+      return;
+    }
+
+    // 挂刀比例
+    if(c > 0){
+      const ratio = c / s;                 // 0~1+
+      const zhe = (ratio * 10).toFixed(2);  // 折数
+      elRatio.innerHTML = (ratio*100).toFixed(1) + '<span class="unit">%</span>'
+        + '<span class="pill">' + zhe + ' 折</span>';
+    } else {
+      elRatio.innerHTML = '—';
+    }
+
+    // 实际到账
+    const received = s * (1 - f/100);
+    elRecv.innerHTML = money(received) + '<span class="unit"></span>';
+
+    // 实际利润
+    if(c > 0){
+      const profit = received - c;
+      const rate = profit / c * 100;
+      const cls = profit >= 0 ? 'up' : 'down';
+      const sign = profit >= 0 ? '+' : '';
+      elProfit.innerHTML = sign + money(profit)
+        + '<span class="pill ' + cls + '">' + sign + rate.toFixed(1) + '%</span>';
+      profitBox.classList.toggle('loss', profit < 0);
+    } else {
+      elProfit.innerHTML = '—';
+      profitBox.classList.remove('loss');
+    }
+  }
+
+  document.getElementById('platforms').addEventListener('click', e=>{
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    fee.value = chip.dataset.fee;
+    setActiveChip();
+    calc();
+  });
+
+  [cost, sell, fee].forEach(el=> el.addEventListener('input', ()=>{ setActiveChip(); calc(); }));
+  setActiveChip();
+  calc();
+</script>
+</body>
+</html>
